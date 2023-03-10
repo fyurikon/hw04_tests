@@ -18,10 +18,13 @@ class PostURLTests(TestCase):
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
 
+        cls.user_not_author = User.objects.create(username='NotAuthor')
+        cls.authorized_not_author_client = Client()
+        cls.authorized_not_author_client.force_login(cls.user_not_author)
+
         cls.post = Post.objects.create(
             text='Тестовый пост',
             author=cls.user,
-            id=10,
         )
 
         cls.group = Group.objects.create(
@@ -42,7 +45,7 @@ class PostURLTests(TestCase):
 
     def test_post_url_exists_at_desired_location(self):
         """Page posts/post_id/ available for all users."""
-        response = self.guest_client.get('/posts/10/')
+        response = self.guest_client.get(f'/posts/{self.post.id}/')
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_group_url_exists_at_desired_location(self):
@@ -61,12 +64,25 @@ class PostURLTests(TestCase):
 
     def test_post_edit_url_exists_at_desired_location(self):
         """Page /posts/post_id/edit/ available for post author only."""
-        response_authorized = self.authorized_client.get('/posts/10/edit/')
-        response_not_authorized = self.guest_client.get('/posts/10/edit/')
+        response_authorized = self.authorized_client.get(
+            f'/posts/{self.post.id}/edit/'
+        )
+        response_not_authorized = self.guest_client.get(
+            f'/posts/{self.post.id}/edit/'
+        )
+        response_not_author = self.authorized_not_author_client.get(
+            f'/posts/{self.post.id}/edit/'
+        )
 
-        self.assertEqual(response_authorized.status_code, HTTPStatus.OK)
-        self.assertEqual(response_not_authorized.status_code,
-                         HTTPStatus.FOUND)
+        self.assertEqual(
+            response_authorized.status_code, HTTPStatus.OK
+        )
+        self.assertEqual(
+            response_not_authorized.status_code, HTTPStatus.FOUND
+        )
+        self.assertEqual(
+            response_not_author.status_code, HTTPStatus.FOUND
+        )
 
     def test_404_url_exists_at_desired_location(self):
         """Page /404/ exists and available for all users."""
@@ -79,9 +95,9 @@ class PostURLTests(TestCase):
         templates_url_names = {
             '/group/some-slug/': 'posts/group_list.html',
             '/profile/HasNoName/': 'posts/profile.html',
-            '/posts/10/': 'posts/post_detail.html',
+            f'/posts/{self.post.id}/': 'posts/post_detail.html',
             '/create/': 'posts/create_post.html',
-            '/posts/10/edit/': 'posts/create_post.html',
+            f'/posts/{self.post.id}/edit/': 'posts/create_post.html',
             '/': 'posts/index.html',
         }
         for address, template in templates_url_names.items():

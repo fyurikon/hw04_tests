@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 PUB_DATE_DESC: str = '-pub_date'
+POST_TEXT_LIMIT: int = 15
 
 
 class Group(models.Model):
@@ -57,7 +58,7 @@ class Post(models.Model):
         verbose_name_plural = 'Публикации'
 
     def __str__(self):
-        return self.text[:15]
+        return self.text[:POST_TEXT_LIMIT]
 
 
 class CensoredWord(models.Model):
