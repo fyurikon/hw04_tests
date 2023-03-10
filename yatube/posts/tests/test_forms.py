@@ -1,8 +1,9 @@
-from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
-from django.shortcuts import get_object_or_404
-from django.urls import reverse
 from http import HTTPStatus
+
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+from django.test import Client, TestCase
+from django.urls import reverse
 
 from ..models import Group, Post
 

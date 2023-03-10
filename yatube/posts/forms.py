@@ -1,13 +1,13 @@
-from django import forms
-
-import nltk
-from nltk.stem.snowball import SnowballStemmer
-from nltk.tokenize import word_tokenize
 from difflib import SequenceMatcher
-import pymorphy2
 from typing import List, Tuple
 
-from .models import Post, CensoredWord
+import nltk
+import pymorphy2
+from django import forms
+from nltk.stem.snowball import SnowballStemmer
+from nltk.tokenize import word_tokenize
+
+from .models import CensoredWord, Post
 
 nltk.download('punkt')
 

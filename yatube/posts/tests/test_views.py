@@ -1,17 +1,24 @@
+from typing import List
+
+from django import forms
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from django import forms
 
 from ..models import Group, Post
 
 User = get_user_model()
+NUMBER_OF_POSTS: int = 30
+EXPECTED_NUMBER_OF_POSTS: int = 10
+ID_FOR_TEST: int = 11
 
 
 class TaskPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+
+        list_of_posts: List[Post] = []
 
         cls.guest_client = Client()
 
@@ -28,16 +35,19 @@ class TaskPagesTests(TestCase):
         cls.post = Post.objects.create(
             text='Тестовый пост',
             author=cls.user,
-            id=11,
             group=cls.group
         )
 
-        for _ in range(30):
-            cls.post = Post.objects.create(
-                text='Один из многих',
-                author=cls.user,
-                group=cls.group,
+        for _ in range(NUMBER_OF_POSTS):
+            list_of_posts.append(
+                Post(
+                    text='Один из многих',
+                    author=cls.user,
+                    group=cls.group,
+                )
             )
+
+        Post.objects.bulk_create(list_of_posts)
 
         cls.special_group = Group.objects.create(
             title='Особая группа',
@@ -48,7 +58,6 @@ class TaskPagesTests(TestCase):
         cls.special_post = Post.objects.create(
             text='Это особенный пост!',
             author=cls.user,
-            id=666,
             group=cls.special_group
         )
 
@@ -66,11 +75,11 @@ class TaskPagesTests(TestCase):
             ): 'posts/profile.html',
             reverse(
                 'posts:post_detail',
-                kwargs={'post_id': 11}
+                kwargs={'post_id': ID_FOR_TEST}
             ): 'posts/post_detail.html',
             reverse(
                 'posts:post_edit',
-                kwargs={'post_id': 11}
+                kwargs={'post_id': ID_FOR_TEST}
             ): 'posts/create_post.html',
             reverse('posts:post_create'): 'posts/create_post.html'
         }
@@ -79,13 +88,23 @@ class TaskPagesTests(TestCase):
                 response = self.authorized_client.get(address)
                 self.assertTemplateUsed(response, template)
 
+    def check_posts_content(self, page_obj: List[Post], posts: List[Post]):
+        """Check posts from db and page obj are same posts."""
+        for (post, post_db) in zip(page_obj, posts):
+            self.assertEqual(post.id, post_db.id)
+            self.assertEqual(post.pub_date, post_db.pub_date)
+            self.assertEqual(post.text, post_db.text)
+            self.assertEqual(post.group, post_db.group)
+            self.assertEqual(post.author, post_db.author)
+
     def test_index_page_show_correct_context(self):
         """Index page with correct context."""
         response = self.authorized_client.get(reverse('posts:index'))
-        total_posts_on_page = len(response.context['page_obj'])
+        first_ten_posts = Post.objects.select_related(
+            'author').all()[:EXPECTED_NUMBER_OF_POSTS]
 
-        self.assertEqual(total_posts_on_page, 10)
         self.assertIn('page_obj', response.context)
+        self.check_posts_content(response.context['page_obj'], first_ten_posts)
 
     def test_group_list_page_show_correct_context(self):
         """Index page with correct context."""
@@ -96,23 +115,13 @@ class TaskPagesTests(TestCase):
             )
         )
 
-        first_object = response.context['page_obj'][0]
-        total_posts_on_page = len(response.context['page_obj'])
+        first_ten_posts = Post.objects.select_related(
+            'author', 'group').filter(group=self.group
+                                      )[:EXPECTED_NUMBER_OF_POSTS]
 
-        self.assertEqual(total_posts_on_page, 10)
         self.assertIn('page_obj', response.context)
-        self.assertEqual(
-            first_object.group.title,
-            self.group.title
-        )
-        self.assertEqual(
-            first_object.group.description,
-            self.group.description
-        )
-        self.assertEqual(
-            first_object.group.slug,
-            self.group.slug
-        )
+        self.assertIn('group', response.context)
+        self.check_posts_content(response.context['page_obj'], first_ten_posts)
 
     def test_profile_page_show_correct_context(self):
         """Profile page with correct context."""
@@ -235,3 +244,52 @@ class TaskPagesTests(TestCase):
 
         self.assertNotEqual(casual_object, self.special_post)
         self.assertNotEqual(casual_object.group.slug, self.special_group.slug)
+
+
+class PaginatorTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        list_of_posts: List[Post] = []
+
+        cls.guest_client = Client()
+
+        cls.user = User.objects.create(username='HasNoName')
+        cls.authorized_client = Client()
+        cls.authorized_client.force_login(cls.user)
+
+        cls.group = Group.objects.create(
+            title='Тестовая группа',
+            slug='some-slug',
+            description='Тестовое описание',
+        )
+
+        for _ in range(NUMBER_OF_POSTS):
+            list_of_posts.append(
+                Post(
+                    text='Один из многих',
+                    author=cls.user,
+                    group=cls.group,
+                )
+            )
+
+        Post.objects.bulk_create(list_of_posts)
+
+    def test_paginator_on_three_pages(self):
+        """Check that paginator works on every page it appears."""
+        page_expected_posts = {
+            '/group/some-slug/': EXPECTED_NUMBER_OF_POSTS,
+            '/profile/HasNoName/': EXPECTED_NUMBER_OF_POSTS,
+            '/': EXPECTED_NUMBER_OF_POSTS,
+        }
+
+        for address, expected_number_of_posts in page_expected_posts.items():
+            with self.subTest(address=address):
+                response = self.guest_client.get(address)
+                total_posts_on_page = len(response.context['page_obj'])
+
+                self.assertEqual(
+                    total_posts_on_page,
+                    expected_number_of_posts
+                )

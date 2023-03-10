@@ -1,10 +1,9 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
-from django.shortcuts import redirect
 from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Post, Group, User
 from .forms import PostForm
+from .models import Group, Post, User
 
 POSTS_LIMIT: int = 10
 
