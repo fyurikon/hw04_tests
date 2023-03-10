@@ -88,23 +88,17 @@ class TaskPagesTests(TestCase):
                 response = self.authorized_client.get(address)
                 self.assertTemplateUsed(response, template)
 
-    def check_posts_content(self, page_obj: List[Post], posts: List[Post]):
-        """Check posts from db and page obj are same posts."""
-        for (post, post_db) in zip(page_obj, posts):
-            self.assertEqual(post.id, post_db.id)
-            self.assertEqual(post.pub_date, post_db.pub_date)
-            self.assertEqual(post.text, post_db.text)
-            self.assertEqual(post.group, post_db.group)
-            self.assertEqual(post.author, post_db.author)
-
     def test_index_page_show_correct_context(self):
         """Index page with correct context."""
         response = self.authorized_client.get(reverse('posts:index'))
-        first_ten_posts = Post.objects.select_related(
+        posts = Post.objects.select_related(
             'author').all()[:EXPECTED_NUMBER_OF_POSTS]
+        page_obj = response.context['page_obj']
 
         self.assertIn('page_obj', response.context)
-        self.check_posts_content(response.context['page_obj'], first_ten_posts)
+
+        for (post, post_db) in zip(page_obj, posts):
+            self.assertEqual(post, post_db)
 
     def test_group_list_page_show_correct_context(self):
         """Index page with correct context."""
@@ -114,14 +108,16 @@ class TaskPagesTests(TestCase):
                 kwargs={'slug': 'some-slug'}
             )
         )
-
-        first_ten_posts = Post.objects.select_related(
+        posts = Post.objects.select_related(
             'author', 'group').filter(group=self.group
                                       )[:EXPECTED_NUMBER_OF_POSTS]
+        page_obj = response.context['page_obj']
 
         self.assertIn('page_obj', response.context)
         self.assertIn('group', response.context)
-        self.check_posts_content(response.context['page_obj'], first_ten_posts)
+
+        for (post, post_db) in zip(page_obj, posts):
+            self.assertEqual(post, post_db)
 
     def test_profile_page_show_correct_context(self):
         """Profile page with correct context."""
@@ -131,16 +127,16 @@ class TaskPagesTests(TestCase):
                 kwargs={'username': 'HasNoName'}
             )
         )
+        posts = Post.objects.select_related(
+            'author', 'group').filter(author=self.user
+                                      )[:EXPECTED_NUMBER_OF_POSTS]
+        page_obj = response.context['page_obj']
 
-        first_object = response.context['page_obj'][0]
-        total_posts_on_page = len(response.context['page_obj'])
-
-        self.assertEqual(total_posts_on_page, 10)
         self.assertIn('page_obj', response.context)
-        self.assertEqual(
-            first_object.author.username,
-            self.user.username
-        )
+        self.assertIn('author', response.context)
+
+        for (post, post_db) in zip(page_obj, posts):
+            self.assertEqual(post, post_db)
 
     def test_post_detail_page_show_correct_context(self):
         """Post detail page with correct context."""
@@ -150,21 +146,9 @@ class TaskPagesTests(TestCase):
                 kwargs={'post_id': self.post.id}
             )
         )
+        post = response.context['post']
 
-        first_object = response.context['post']
-
-        self.assertEqual(
-            first_object.text,
-            self.post.text
-        )
-        self.assertEqual(
-            first_object.author.username,
-            self.user.username
-        )
-        self.assertEqual(
-            first_object.group,
-            self.post.group
-        )
+        self.assertEqual(post, self.post)
 
     def test_post_create_page_show_correct_context(self):
         """Post create page with post_create method with correct context."""
