@@ -1,10 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 
 from ..models import Group, Post
 
 User = get_user_model()
+ONE_POST: int = 1
 
 
 class PostFormCreateEditTests(TestCase):
@@ -24,13 +26,6 @@ class PostFormCreateEditTests(TestCase):
             description='Тестовое описание',
         )
 
-        for _ in range(20):
-            cls.post = Post.objects.create(
-                text='Тестовый пост',
-                author=cls.user,
-                group=cls.group
-            )
-
     def test_post_create(self):
         """New post is created and added to database."""
         post_content = {
@@ -46,9 +41,13 @@ class PostFormCreateEditTests(TestCase):
         )
 
         posts_nbr_after_creation = Post.objects.count()
+        post = get_object_or_404(Post.objects.select_related('group', 'author'))
 
-        self.assertNotEqual(
-            posts_nbr_before_creation,
+        self.assertEqual(post_content['text'], post.text)
+        self.assertEqual(post_content['group'], post.group.pk)
+        self.assertEqual(self.user.username, post.author.username)
+        self.assertEqual(
+            posts_nbr_before_creation + ONE_POST,
             posts_nbr_after_creation
         )
 
