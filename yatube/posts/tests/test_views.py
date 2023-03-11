@@ -160,10 +160,8 @@ class TaskPagesTests(TestCase):
             'group': forms.fields.ChoiceField,
         }
 
-        is_edit = response.context['is_edit']
-
         self.assertIn('is_edit', response.context)
-        self.assertEqual(is_edit, False)
+        self.assertFalse(response.context['is_edit'])
 
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -186,12 +184,11 @@ class TaskPagesTests(TestCase):
 
         form_field_text = response.context.get('form')['text'].value()
         form_field_group = response.context.get('form')['group'].value()
-        is_edit = response.context['is_edit']
 
         self.assertEqual(form_field_text, self.special_post.text)
         self.assertEqual(form_field_group, self.special_post.group.pk)
         self.assertIn('is_edit', response.context)
-        self.assertEqual(is_edit, True)
+        self.assertTrue(response.context['is_edit'])
 
         for value, expected in form_fields.items():
             with self.subTest(value=value):

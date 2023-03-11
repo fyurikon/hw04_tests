@@ -11,7 +11,7 @@ from .models import CensoredWord, Post
 
 nltk.download('punkt')
 
-similarity_threshhold: float = 0.8
+similarity_threshold: float = 0.8
 
 
 def join_punctuation(seq: List[str], characters: str = '.,;?!') -> str:
@@ -53,11 +53,11 @@ def bad_language_validation(text: str, stop_words: List[str],
     validation_error: bool = False
     tokenized_words: List[str] = word_tokenize(text)
 
-    lemmed_words: List[str] = lemmatize_words(tokenized_words)
-    lemmed_stop_words: List[str] = lemmatize_words(stop_words)
+    lemmatized_words: List[str] = lemmatize_words(tokenized_words)
+    lemmatized_stop_words: List[str] = lemmatize_words(stop_words)
 
-    stemmed_stop_words: List[str] = stemmatize_words(lemmed_stop_words)
-    stemmed_words: List[str] = stemmatize_words(lemmed_words)
+    stemmed_stop_words: List[str] = stemmatize_words(lemmatized_stop_words)
+    stemmed_words: List[str] = stemmatize_words(lemmatized_words)
 
     for i in range(len(stemmed_words)):
         if stemmed_words[i] in stemmed_stop_words:
@@ -94,7 +94,7 @@ class PostForm(forms.ModelForm):
         data: Tuple[str, bool] = bad_language_validation(
             text,
             stop_words,
-            similarity_threshhold
+            similarity_threshold
         )
 
         text = data[0]

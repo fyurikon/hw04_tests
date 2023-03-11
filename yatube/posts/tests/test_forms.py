@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -47,16 +46,11 @@ class PostFormCreateEditTests(TestCase):
         )
 
         posts_nbr_after_creation = Post.objects.count()
-        post = get_object_or_404(
-            Post.objects.select_related
-            (
-                'group', 'author'
-            )
-        )
+        post = Post.objects.select_related('group', 'author').get()
 
         self.assertEqual(post_content['text'], post.text)
         self.assertEqual(post_content['group'], post.group.pk)
-        self.assertEqual(self.user.username, post.author.username)
+        self.assertEqual(self.user, post.author)
         self.assertEqual(
             posts_nbr_before_creation + ONE_POST,
             posts_nbr_after_creation
@@ -76,16 +70,11 @@ class PostFormCreateEditTests(TestCase):
         )
 
         posts_nbr_after_creation = Post.objects.count()
-        post = get_object_or_404(
-            Post.objects.select_related
-            (
-                'group', 'author'
-            )
-        )
+        post = Post.objects.select_related('group', 'author').get()
 
         self.assertEqual(post_content['text'], post.text)
         self.assertEqual(post.group, None)
-        self.assertEqual(self.user.username, post.author.username)
+        self.assertEqual(self.user, post.author)
         self.assertEqual(
             posts_nbr_before_creation + ONE_POST,
             posts_nbr_after_creation
@@ -139,12 +128,7 @@ class PostFormCreateEditTests(TestCase):
             data=post_edited_content
         )
 
-        edited_post = get_object_or_404(
-            Post.objects.select_related
-            (
-                'group', 'author'
-            )
-        )
+        edited_post = Post.objects.select_related('group', 'author').get()
 
         self.assertEqual(edited_post.pub_date, created_post.pub_date)
         self.assertEqual(edited_post.author, created_post.author)
@@ -174,12 +158,7 @@ class PostFormCreateEditTests(TestCase):
             data=post_edited_content
         )
 
-        edited_post = get_object_or_404(
-            Post.objects.select_related
-            (
-                'group', 'author'
-            )
-        )
+        edited_post = Post.objects.select_related('group', 'author').get()
 
         self.assertEqual(edited_post.pub_date, created_post.pub_date)
         self.assertEqual(edited_post.author, created_post.author)
@@ -213,12 +192,7 @@ class PostFormCreateEditTests(TestCase):
             data=post_edited_content
         )
 
-        edited_post = get_object_or_404(
-            Post.objects.select_related
-            (
-                'group', 'author'
-            )
-        )
+        edited_post = Post.objects.select_related('group', 'author').get()
 
         self.assertEqual(edited_post.pub_date, created_post.pub_date)
         self.assertEqual(edited_post.author, created_post.author)
