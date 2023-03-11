@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import Group, Post
+from ..models import Group, Post, CensoredWord
 
 User = get_user_model()
 POST_TEXT_LIMIT: int = 15
@@ -56,8 +56,6 @@ class GroupModelTest(TestCase):
     def setUpClass(cls):
         super().setUpClass()
 
-        cls.user = User.objects.create(username='HasNoName')
-
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='some-slug',
@@ -73,8 +71,29 @@ class GroupModelTest(TestCase):
     def test_group_model_has_correct_verbose_names(self):
         """Check that group model has correct verbose names."""
         group = GroupModelTest.group
-        verbose_text_group = group._meta.verbose_name
-        verbose_text_group_plural = group._meta.verbose_name_plural
 
-        self.assertEqual(verbose_text_group, 'Группа')
-        self.assertEqual(verbose_text_group_plural, 'Группы')
+        self.assertEqual(group._meta.verbose_name, 'Группа')
+        self.assertEqual(group._meta.verbose_name_plural, 'Группы')
+
+
+class CensoredWordModelTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.word = CensoredWord.objects.create(
+            word='Охотник',
+        )
+
+    def test_censored_word_model_has_correct_object_names(self):
+        """Check that __str__ method is correct."""
+        word = CensoredWordModelTest.word
+
+        self.assertEqual(word.word, word.__str__())
+
+    def test_censored_word_model_has_correct_verbose_names(self):
+        """Check that censored word model has correct verbose names."""
+        word = CensoredWordModelTest.word
+
+        self.assertEqual(word._meta.verbose_name, 'Слово')
+        self.assertEqual(word._meta.verbose_name_plural, 'Слова')

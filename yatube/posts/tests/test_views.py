@@ -8,9 +8,10 @@ from django.urls import reverse
 from ..models import Group, Post
 
 User = get_user_model()
-NUMBER_OF_POSTS: int = 30
-EXPECTED_NUMBER_OF_POSTS: int = 10
-ID_FOR_TEST: int = 11
+NUMBER_OF_POSTS: int = 15
+EXPECTED_POSTS_NUMBER: int = 10
+EXPECTED_POSTS_NUMBER_ON_SECOND_PAGE: int = 5
+ID_FOR_TEST: int = 10
 
 
 class TaskPagesTests(TestCase):
@@ -92,7 +93,7 @@ class TaskPagesTests(TestCase):
         """Index page with correct context."""
         response = self.authorized_client.get(reverse('posts:index'))
         posts = Post.objects.select_related(
-            'author').all()[:EXPECTED_NUMBER_OF_POSTS]
+            'author').all()[:EXPECTED_POSTS_NUMBER]
         page_obj = response.context['page_obj']
 
         self.assertIn('page_obj', response.context)
@@ -110,7 +111,7 @@ class TaskPagesTests(TestCase):
         )
         posts = Post.objects.select_related(
             'author', 'group').filter(group=self.group
-                                      )[:EXPECTED_NUMBER_OF_POSTS]
+                                      )[:EXPECTED_POSTS_NUMBER]
         page_obj = response.context['page_obj']
 
         self.assertIn('page_obj', response.context)
@@ -129,7 +130,7 @@ class TaskPagesTests(TestCase):
         )
         posts = Post.objects.select_related(
             'author', 'group').filter(author=self.user
-                                      )[:EXPECTED_NUMBER_OF_POSTS]
+                                      )[:EXPECTED_POSTS_NUMBER]
         page_obj = response.context['page_obj']
 
         self.assertIn('page_obj', response.context)
@@ -159,6 +160,11 @@ class TaskPagesTests(TestCase):
             'group': forms.fields.ChoiceField,
         }
 
+        is_edit = response.context['is_edit']
+
+        self.assertIn('is_edit', response.context)
+        self.assertEqual(is_edit, False)
+
         for value, expected in form_fields.items():
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
@@ -180,8 +186,12 @@ class TaskPagesTests(TestCase):
 
         form_field_text = response.context.get('form')['text'].value()
         form_field_group = response.context.get('form')['group'].value()
+        is_edit = response.context['is_edit']
+
         self.assertEqual(form_field_text, self.special_post.text)
         self.assertEqual(form_field_group, self.special_post.group.pk)
+        self.assertIn('is_edit', response.context)
+        self.assertEqual(is_edit, True)
 
         for value, expected in form_fields.items():
             with self.subTest(value=value):
@@ -190,28 +200,27 @@ class TaskPagesTests(TestCase):
 
     def test_special_post_on_three_pages(self):
         """Special post is available on index, profile, group_list."""
-        page_names = {
-            reverse('posts:index'): self.special_group.slug,
+        pages = (
+            reverse('posts:index'),
             reverse(
                 'posts:profile',
                 kwargs={
                     'username': self.user.username
                 }
-            ): self.special_group.slug,
+            ),
             reverse(
                 'posts:group_list',
                 kwargs={
-                    'slug': self.special_group.slug
+                    'slug': self.special_post.group.slug
                 }
-            ): self.special_group.slug,
-        }
+            ),
+        )
 
-        for value, expected in page_names.items():
-            response = self.authorized_client.get(value)
-            special_object = response.context['page_obj'][0]
+        for page in pages:
+            response = self.authorized_client.get(page)
+            page_obj = response.context['page_obj']
 
-            with self.subTest(value=value):
-                self.assertEqual(special_object.group.slug, expected)
+            self.assertIn(self.special_post, page_obj)
 
     def test_special_post_not_on_other_group_page(self):
         """Special post not on other group page."""
@@ -224,10 +233,9 @@ class TaskPagesTests(TestCase):
             )
         )
 
-        casual_object = response.context['page_obj'][0]
+        page_obj = response.context['page_obj']
 
-        self.assertNotEqual(casual_object, self.special_post)
-        self.assertNotEqual(casual_object.group.slug, self.special_group.slug)
+        self.assertNotIn(self.special_post, page_obj)
 
 
 class PaginatorTest(TestCase):
@@ -261,11 +269,19 @@ class PaginatorTest(TestCase):
         Post.objects.bulk_create(list_of_posts)
 
     def test_paginator_on_three_pages(self):
-        """Check that paginator works on every page it appears."""
+        """Check that paginator works on every page it meant to be."""
+        group_page = '/group/some-slug/'
+        profile_page = '/profile/HasNoName/'
+        main_page = '/'
+        second_page = '?page=2'
+
         page_expected_posts = {
-            '/group/some-slug/': EXPECTED_NUMBER_OF_POSTS,
-            '/profile/HasNoName/': EXPECTED_NUMBER_OF_POSTS,
-            '/': EXPECTED_NUMBER_OF_POSTS,
+            group_page: EXPECTED_POSTS_NUMBER,
+            profile_page: EXPECTED_POSTS_NUMBER,
+            main_page: EXPECTED_POSTS_NUMBER,
+            group_page + second_page: EXPECTED_POSTS_NUMBER_ON_SECOND_PAGE,
+            profile_page + second_page: EXPECTED_POSTS_NUMBER_ON_SECOND_PAGE,
+            main_page + second_page: EXPECTED_POSTS_NUMBER_ON_SECOND_PAGE
         }
 
         for address, expected_number_of_posts in page_expected_posts.items():
