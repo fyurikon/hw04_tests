@@ -18,6 +18,7 @@ def get_paginator(request, posts, posts_per_page):
 
     return page_obj
 
+
 def join_punctuation(seq: List[str], characters: str = '.,;?!') -> str:
     """Combine words and characters into string."""
     characters = set(characters)
