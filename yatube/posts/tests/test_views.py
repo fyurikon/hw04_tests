@@ -94,9 +94,10 @@ class TaskPagesTests(TestCase):
         response = self.authorized_client.get(reverse('posts:index'))
         posts = Post.objects.select_related(
             'author').all()[:EXPECTED_POSTS_NUMBER]
-        page_obj = response.context['page_obj']
 
         self.assertIn('page_obj', response.context)
+
+        page_obj = response.context['page_obj']
 
         for (post, post_db) in zip(page_obj, posts):
             self.assertEqual(post, post_db)
@@ -112,10 +113,11 @@ class TaskPagesTests(TestCase):
         posts = Post.objects.select_related(
             'author', 'group').filter(group=self.group
                                       )[:EXPECTED_POSTS_NUMBER]
-        page_obj = response.context['page_obj']
 
         self.assertIn('page_obj', response.context)
         self.assertIn('group', response.context)
+
+        page_obj = response.context['page_obj']
 
         for (post, post_db) in zip(page_obj, posts):
             self.assertEqual(post, post_db)
@@ -131,10 +133,11 @@ class TaskPagesTests(TestCase):
         posts = Post.objects.select_related(
             'author', 'group').filter(author=self.user
                                       )[:EXPECTED_POSTS_NUMBER]
-        page_obj = response.context['page_obj']
 
         self.assertIn('page_obj', response.context)
         self.assertIn('author', response.context)
+
+        page_obj = response.context['page_obj']
 
         for (post, post_db) in zip(page_obj, posts):
             self.assertEqual(post, post_db)
