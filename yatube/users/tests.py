@@ -8,6 +8,7 @@ from django.urls import reverse
 User = get_user_model()
 ONE: int = 1
 
+
 class UsersURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
