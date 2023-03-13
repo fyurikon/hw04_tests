@@ -15,15 +15,69 @@ class UsersURLTests(TestCase):
 
         cls.guest_client = Client()
 
-    def test_signup_url_exists_at_desired_location(self):
-        """Page /users/signup/ is available."""
-        response = self.guest_client.get('/auth/signup/')
-        self.assertEqual(response.status_code, HTTPStatus.OK)
+        cls.user = User.objects.create(username='HasNoName')
+        cls.authorized_client = Client()
+        cls.authorized_client.force_login(cls.user)
 
-    def test_signup_url_uses_correct_template(self):
-        """Page /auth/signup/ template is available."""
-        response = self.guest_client.get('/auth/signup/')
-        self.assertTemplateUsed(response, 'users/signup.html')
+    def test_user_guest_urls_exists_at_desired_location(self):
+        """User pages are available."""
+        templates_pages_names = {
+            reverse('users:signup'): HTTPStatus.OK,
+            reverse('users:login'): HTTPStatus.OK,
+            reverse('users:logout'): HTTPStatus.OK,
+            reverse('users:password_reset'): HTTPStatus.OK,
+            reverse('users:password_reset_done'): HTTPStatus.OK,
+            reverse('users:password_reset_complete'): HTTPStatus.OK,
+        }
+
+        for page, status_code in templates_pages_names.items():
+            with self.subTest(status_code=status_code):
+                response = self.guest_client.get(page)
+                self.assertEqual(response.status_code, status_code)
+
+    def test_user_authorized_urls_exists_at_desired_location(self):
+        """Authorized user pages are available."""
+        templates_pages_names = {
+            reverse('users:password_change_done'): HTTPStatus.OK,
+            reverse('users:password_change'): HTTPStatus.OK,
+        }
+
+        for page, status_code in templates_pages_names.items():
+            with self.subTest(status_code=status_code):
+                response = self.authorized_client.get(page)
+                self.assertEqual(response.status_code, status_code)
+
+    def test_user_pages_use_correct_template(self):
+        """User pages use correct template."""
+        templates_pages_names = {
+            reverse('users:signup'): 'users/signup.html',
+            reverse('users:login'): 'users/login.html',
+            reverse('users:logout'): 'users/logged_out.html',
+            reverse('users:password_reset'): 'users/password_reset_form.html',
+            reverse('users:password_reset_done'):
+                'users/password_reset_done.html',
+            reverse('users:password_reset_complete'):
+                'users/password_reset_complete.html',
+        }
+
+        for page, template in templates_pages_names.items():
+            with self.subTest(template=template):
+                response = self.guest_client.get(page)
+                self.assertTemplateUsed(response, template)
+
+    def test_user_authorized_pages_use_correct_template(self):
+        """User pages use correct template."""
+        templates_pages_names = {
+            reverse('users:password_change_done'):
+                'users/password_change_done.html',
+            reverse('users:password_change'):
+                'users/password_change_form.html',
+        }
+
+        for page, template in templates_pages_names.items():
+            with self.subTest(template=template):
+                response = self.authorized_client.get(page)
+                self.assertTemplateUsed(response, template)
 
     def test_signup_page_show_correct_context(self):
         """Signup page with correct context."""
