@@ -6,7 +6,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 User = get_user_model()
-
+ONE: int = 1
 
 class UsersURLTests(TestCase):
     @classmethod
@@ -107,14 +107,16 @@ class UsersURLTests(TestCase):
 
         user_nbr_before_creation = User.objects.count()
 
-        self.guest_client.post(
+        response = self.guest_client.post(
             reverse('users:signup'),
             data=user_content,
         )
 
         user_nbr_after_creation = User.objects.count()
 
-        self.assertNotEqual(
-            user_nbr_before_creation,
+        self.assertEqual(
+            user_nbr_before_creation + ONE,
             user_nbr_after_creation
         )
+        self.assertTrue(User.objects.filter(username='Rick').exists())
+        self.assertRedirects(response, reverse('posts:index'))
