@@ -29,6 +29,9 @@ class UsersURLTests(TestCase):
             reverse('users:password_reset'): HTTPStatus.OK,
             reverse('users:password_reset_done'): HTTPStatus.OK,
             reverse('users:password_reset_complete'): HTTPStatus.OK,
+            reverse(
+                'users:password_reset_confirm', args=['uid64', 'token']
+            ): HTTPStatus.OK,
         }
 
         for page, status_code in templates_pages_names.items():
@@ -59,6 +62,9 @@ class UsersURLTests(TestCase):
                 'users/password_reset_done.html',
             reverse('users:password_reset_complete'):
                 'users/password_reset_complete.html',
+            reverse(
+                'users:password_reset_confirm', args=['uid64', 'token']
+            ): 'users/password_reset_confirm.html',
         }
 
         for page, template in templates_pages_names.items():
