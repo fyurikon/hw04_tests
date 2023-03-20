@@ -52,6 +52,12 @@ class Post(models.Model):
         help_text='Группа, к которой будет относиться пост'
     )
 
+    image = models.ImageField(
+        'Картинка',
+        upload_to='posts/',
+        blank=True
+    )
+
     class Meta:
         ordering = (PUB_DATE_DESC,)
         verbose_name = 'Публикация'

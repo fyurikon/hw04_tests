@@ -35,7 +35,7 @@ class PostFormCreateEditTests(TestCase):
         """New post is created and added to database."""
         post_content = {
             'text': 'Особый пост',
-            'group': self.group.pk
+            'group': self.group.pk,
         }
 
         posts_nbr_before_creation = Post.objects.count()

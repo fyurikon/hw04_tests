@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
+from django.urls import reverse
 
 from ..models import Group, Post
 
@@ -66,13 +67,22 @@ class PostURLTests(TestCase):
     def test_post_edit_url_exists_at_desired_location(self):
         """Page /posts/post_id/edit/ available for post author only."""
         response_authorized = self.authorized_client.get(
-            f'/posts/{self.post.id}/edit/'
+            reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.id}
+            )
         )
         response_not_authorized = self.guest_client.get(
-            f'/posts/{self.post.id}/edit/'
+            reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.id}
+            )
         )
         response_not_author = self.authorized_not_author_client.get(
-            f'/posts/{self.post.id}/edit/'
+            reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.id}
+            )
         )
 
         self.assertEqual(
