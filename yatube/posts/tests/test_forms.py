@@ -296,13 +296,6 @@ class PostFormCreateEditTests(TestCase):
 
         comments_nbr_after_creation = Comment.objects.count()
 
-        response = self.guest_client.get(
-            reverse(
-                'posts:post_detail',
-                kwargs={'post_id': special_post.id}
-            )
-        )
-
         self.assertEqual(
             comments_nbr_before_creation,
             comments_nbr_after_creation
