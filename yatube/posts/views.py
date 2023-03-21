@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import cache_page
 
 from .forms import PostForm, CommentForm
-from .models import Group, Post, User, Comment
+from .models import Group, Post, User, Comment, Follow
 from .utils import get_paginator
 
 POSTS_LIMIT: int = 10
@@ -39,10 +39,20 @@ def profile(request, username):
     user = get_object_or_404(User, username=username)
     posts = user.posts.select_related('group').all()
     page_obj = get_paginator(request, posts, POSTS_LIMIT)
+    following = False
+
+    if (request.user != user
+            and request.user.is_authenticated
+            and Follow.objects.filter(
+                user=request.user,
+                author=user,
+            ).exists()):
+        following = True
 
     context = {
         'author': user,
         'page_obj': page_obj,
+        'following': following,
     }
     return render(request, 'posts/profile.html', context)
 
@@ -141,3 +151,38 @@ def add_comment(request, post_id):
     return render(request, 'posts/post_detail.html', context)
 
 
+@login_required
+def follow_index(request):
+    """Page with author's posts."""
+    posts = Post.objects.select_related(
+        'author'
+    ).filter(author__following__user=request.user)
+
+    page_obj = get_paginator(request, posts, POSTS_LIMIT)
+
+    context = {
+        'page_obj': page_obj,
+    }
+    return render(request, 'posts/follow.html', context)
+
+
+@login_required
+def profile_follow(request, username):
+    """Follow the author."""
+    if username != request.user.username:
+        user = get_object_or_404(User, username=username)
+        Follow.objects.get_or_create(user=request.user, author=user)
+
+    return redirect("posts:profile", username=username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    """Stop following the author."""
+    get_object_or_404(
+        Follow,
+        author__username=username,
+        user=request.user,
+    ).delete()
+
+    return redirect("posts:profile", username=username)

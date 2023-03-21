@@ -82,7 +82,7 @@ class PostFormCreateEditTests(TestCase):
 
         self.assertEqual(post_content['text'], post.text)
         self.assertEqual(post_content['group'], post.group.pk)
-        self.assertEqual(post.image, IMG_FOLDER + 'test_gif.gif')
+        self.assertEqual(post.image, IMG_FOLDER + uploaded_img.name)
         self.assertEqual(self.user, post.author)
         self.assertEqual(
             posts_nbr_before_creation + ONE_POST,

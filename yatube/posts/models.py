@@ -108,4 +108,27 @@ class Comment(models.Model):
         ordering = (COMM_DATE_DESC,)
 
     def __str__(self):
-        return self.text
+        return self.text[:POST_TEXT_LIMIT]
+
+
+class Follow(models.Model):
+    """Follow model."""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='follower',
+        verbose_name='Подписчик',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following',
+        verbose_name='Автор',
+    )
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки',
+
+    def __str__(self):
+        return f'{self.user.username} -> {self.author.username}'
