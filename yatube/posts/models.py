@@ -87,27 +87,24 @@ class Comment(models.Model):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        related_name="comments",
-        verbose_name="Публикация",
+        related_name='comments',
+        verbose_name='Публикация',
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="comments",
-        verbose_name="Автор",
+        related_name='comments',
+        verbose_name='Автор',
     )
-    text = models.TextField(
-        verbose_name="Текст комментария",
-        help_text="Введите текст",
-    )
+    text = models.TextField('Текст комментария', help_text='Введите текст',)
     created = models.DateTimeField(
-        verbose_name="Дата публикации комментария",
+        'Дата публикации комментария',
         auto_now_add=True,
     )
 
     class Meta:
-        verbose_name = "Комментарий"
-        verbose_name_plural = "Комментарии"
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии',
         ordering = (COMM_DATE_DESC,)
 
     def __str__(self):

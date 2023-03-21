@@ -3,6 +3,7 @@ import tempfile
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -13,7 +14,7 @@ from ..models import Group, Post, Comment
 User = get_user_model()
 ONE_POST: int = 1
 ONE_COMMENT: int = 1
-IMAGES_FOLDER = Post.image.field.upload_to
+IMG_FOLDER = Post.image.field.upload_to
 TEST_GIF = (
     b"\x47\x49\x46\x38\x39\x61\x02\x00"
     b"\x01\x00\x80\x00\x00\x00\x00\x00"
@@ -48,6 +49,9 @@ class PostFormCreateEditTests(TestCase):
             description='Тестовое описание',
         )
 
+    def setUp(self) -> None:
+        cache.clear()
+
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
@@ -78,7 +82,7 @@ class PostFormCreateEditTests(TestCase):
 
         self.assertEqual(post_content['text'], post.text)
         self.assertEqual(post_content['group'], post.group.pk)
-        self.assertEqual(post.image, IMAGES_FOLDER + 'test_gif.gif')
+        self.assertEqual(post.image, IMG_FOLDER + 'test_gif.gif')
         self.assertEqual(self.user, post.author)
         self.assertEqual(
             posts_nbr_before_creation + ONE_POST,

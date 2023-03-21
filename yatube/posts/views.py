@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.cache import cache_page
 
 from .forms import PostForm, CommentForm
 from .models import Group, Post, User, Comment
@@ -8,6 +9,7 @@ from .utils import get_paginator
 POSTS_LIMIT: int = 10
 
 
+@cache_page(20)
 def index(request):
     """Main page."""
     posts = Post.objects.select_related('author', 'group').all()

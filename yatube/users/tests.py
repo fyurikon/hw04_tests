@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -19,6 +20,9 @@ class UsersURLTests(TestCase):
         cls.user = User.objects.create(username='HasNoName')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
+
+    def setUp(self) -> None:
+        cache.clear()
 
     def test_user_guest_urls_exists_at_desired_location(self):
         """User pages are available."""

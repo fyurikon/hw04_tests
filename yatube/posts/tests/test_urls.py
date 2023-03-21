@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -34,6 +35,9 @@ class PostURLTests(TestCase):
             slug='some-slug',
             description='Тестовое описание',
         )
+
+    def setUp(self) -> None:
+        cache.clear()
 
     def test_home_url_exists_at_desired_location(self):
         """Page available for all users."""
@@ -110,6 +114,7 @@ class PostURLTests(TestCase):
             '/create/': 'posts/create_post.html',
             f'/posts/{self.post.id}/edit/': 'posts/create_post.html',
             '/': 'posts/index.html',
+            '/unexisting_url/': 'core/404.html'
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):

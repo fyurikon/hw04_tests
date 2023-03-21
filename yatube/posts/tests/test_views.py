@@ -1,19 +1,35 @@
+import shutil
+import tempfile
 from typing import List
 
 from django import forms
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.core.cache import cache
+from django.conf import settings
 
-from ..models import Group, Post
+from ..models import Group, Post, Comment
 
 User = get_user_model()
 NUMBER_OF_POSTS: int = 15
 EXPECTED_POSTS_NUMBER: int = 10
 EXPECTED_POSTS_NUMBER_ON_SECOND_PAGE: int = 5
 ID_FOR_TEST: int = 10
+TEST_GIF = (
+    b"\x47\x49\x46\x38\x39\x61\x02\x00"
+    b"\x01\x00\x80\x00\x00\x00\x00\x00"
+    b"\xFF\xFF\xFF\x21\xF9\x04\x00\x00"
+    b"\x00\x00\x00\x2C\x00\x00\x00\x00"
+    b"\x02\x00\x01\x00\x00\x02\x02\x0C"
+    b"\x0A\x00\x3B"
+)
+
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class TaskPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -36,7 +52,10 @@ class TaskPagesTests(TestCase):
         cls.post = Post.objects.create(
             text='Тестовый пост',
             author=cls.user,
-            group=cls.group
+            group=cls.group,
+            image=SimpleUploadedFile(
+                name="test_gif.gif", content=TEST_GIF, content_type="image/gif"
+            ),
         )
 
         for _ in range(NUMBER_OF_POSTS):
@@ -61,6 +80,20 @@ class TaskPagesTests(TestCase):
             author=cls.user,
             group=cls.special_group
         )
+
+        cls.special_comment = Comment.objects.create(
+            post=cls.special_post,
+            author=cls.user,
+            text='Специальный комментарий для особого поста.'
+        )
+
+    def setUp(self) -> None:
+        cache.clear()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def test_views_uses_correct_template(self):
         """URL uses correct template."""
@@ -147,12 +180,16 @@ class TaskPagesTests(TestCase):
         response = self.authorized_client.get(
             reverse(
                 'posts:post_detail',
-                kwargs={'post_id': self.post.id}
+                kwargs={'post_id': self.special_post.id}
             )
         )
         post = response.context['post']
+        comment = response.context['comments'][0]
 
-        self.assertEqual(post, self.post)
+        self.assertEqual(post, self.special_post)
+        self.assertIn('comments', response.context)
+        self.assertIn('form', response.context)
+        self.assertEqual(comment, self.special_comment)
 
     def test_post_create_page_show_correct_context(self):
         """Post create page with post_create method with correct context."""
@@ -237,6 +274,19 @@ class TaskPagesTests(TestCase):
 
         self.assertNotIn(self.special_post, page_obj)
 
+    def test_cache_on_main_page(self):
+        """Test cache on the main page."""
+        content_cache = self.guest_client.get(reverse("posts:index")).content
+        Post.objects.all().delete()
+        content_before = self.guest_client.get(reverse("posts:index")).content
+
+        self.assertEqual(content_cache, content_before)
+
+        cache.clear()
+        content_after = self.guest_client.get(reverse("posts:index")).content
+
+        self.assertNotEqual(content_cache, content_after)
+
 
 class PaginatorTest(TestCase):
     @classmethod
@@ -267,6 +317,9 @@ class PaginatorTest(TestCase):
             )
 
         Post.objects.bulk_create(list_of_posts)
+
+    def setUp(self) -> None:
+        cache.clear()
 
     def test_paginator_on_three_pages(self):
         """Check that paginator works on every page it meant to be."""
