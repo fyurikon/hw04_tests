@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CensoredWord, Group, Post, Comment
+from .models import CensoredWord, Comment, Group, Post
 
 
 class PostAdmin(admin.ModelAdmin):

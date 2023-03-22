@@ -2,7 +2,7 @@ from typing import Tuple
 
 from django import forms
 
-from .models import CensoredWord, Post, Comment
+from .models import CensoredWord, Comment, Post
 from .utils import bad_language_validation
 
 SIMILARITY_THRESHOLD: float = 0.9

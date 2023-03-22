@@ -3,20 +3,22 @@ import tempfile
 from typing import List
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from django.core.cache import cache
-from django.conf import settings
 
-from ..models import Group, Post, Comment
+from ..models import Comment, Follow, Group, Post
 
 User = get_user_model()
 NUMBER_OF_POSTS: int = 15
 EXPECTED_POSTS_NUMBER: int = 10
 EXPECTED_POSTS_NUMBER_ON_SECOND_PAGE: int = 5
 ID_FOR_TEST: int = 10
+ONE_FOLLOW: int = 1
+RECENT_POST: int = 0
 TEST_GIF = (
     b"\x47\x49\x46\x38\x39\x61\x02\x00"
     b"\x01\x00\x80\x00\x00\x00\x00\x00"
@@ -42,6 +44,14 @@ class TaskPagesTests(TestCase):
         cls.user = User.objects.create(username='HasNoName')
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
+
+        cls.user_not_author = User.objects.create(username='NotAuthor')
+        cls.authorized_client_not_author = Client()
+        cls.authorized_client_not_author.force_login(cls.user_not_author)
+
+        cls.user_not_follower = User.objects.create(username='NotFollower')
+        cls.authorized_client_not_follower = Client()
+        cls.authorized_client_not_follower.force_login(cls.user_not_follower)
 
         cls.group = Group.objects.create(
             title='Тестовая группа',
@@ -286,6 +296,85 @@ class TaskPagesTests(TestCase):
         content_after = self.guest_client.get(reverse("posts:index")).content
 
         self.assertNotEqual(content_cache, content_after)
+
+    def test_profile_follow_unfollow_authorized(self):
+        """Test that authorized user could follow the author."""
+        followers_number_before = Follow.objects.count()
+
+        self.authorized_client.get(
+            reverse(
+                "posts:profile_follow", args=[self.user_not_author.username]
+            )
+        )
+
+        followers_number_after = Follow.objects.count()
+
+        self.assertEqual(
+            followers_number_after,
+            followers_number_before + ONE_FOLLOW
+        )
+        self.assertTrue(
+            Follow.objects.filter(
+                author=self.user_not_author,
+                user=self.user
+            ).exists())
+
+        self.authorized_client.get(
+            reverse(
+                "posts:profile_unfollow", args=[self.user_not_author.username]
+            )
+        )
+
+    def test_profile_stop_follow_authorized(self):
+        """Test that authorized user could stop follow the author."""
+        Follow.objects.create(author=self.user_not_author, user=self.user)
+        followers_number_before = Follow.objects.count()
+
+        self.authorized_client.get(
+            reverse(
+                "posts:profile_unfollow", args=[self.user_not_author.username]
+            )
+        )
+
+        followers_number_after = Follow.objects.count()
+
+        self.assertEqual(
+            followers_number_after,
+            followers_number_before - ONE_FOLLOW
+        )
+        self.assertFalse(
+            Follow.objects.filter(
+                author=self.user_not_author,
+                user=self.user
+            ).exists())
+
+    def test_new_post_appears_for_subscribers(self):
+        """New author's post appears on user's following page."""
+        Follow.objects.create(author=self.user_not_author, user=self.user)
+        created_post = Post.objects.create(
+            text='Специальный пост для тестирования подписки.',
+            author=self.user_not_author,
+            group=self.group
+        )
+        response = self.authorized_client.get(reverse("posts:follow_index"))
+
+        self.assertEqual(
+            created_post,
+            response.context['page_obj'][RECENT_POST]
+        )
+
+    def test_new_post_not_appear_for_non_subscribers(self):
+        """New author's post isn't shown for non-subscribers."""
+        Post.objects.create(
+            text='Специальный пост для тестирования подписки.',
+            author=self.user_not_author,
+            group=self.group
+        )
+        response = self.authorized_client_not_follower.get(
+            reverse("posts:follow_index")
+        )
+
+        self.assertFalse(len(response.context['page_obj']), 0)
 
 
 class PaginatorTest(TestCase):

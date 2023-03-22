@@ -2,14 +2,14 @@ import shutil
 import tempfile
 from http import HTTPStatus
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from django.conf import settings
 
-from ..models import Group, Post, Comment
+from ..models import Comment, Group, Post
 
 User = get_user_model()
 ONE_POST: int = 1
